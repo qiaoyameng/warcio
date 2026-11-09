@@ -1,3 +1,13 @@
+Unreleased
+~~~~~~~~~~
+
+- Add an explicit revisit resolution entry point (``warcio.revisit.RevisitResolver``)
+  for WARC 1.0/1.1 ``identical-payload-digest`` revisits. A caller supplied
+  lookup callback opens independent streams at target records, references may
+  chain through further revisits, every payload digest on the chain is checked
+  against the stored WARC payload bytes, and lookup/identity/cycle/depth
+  failures raise ``RevisitResolutionError`` carrying the full reference chain.
+
 1.8.2
 ~~~~~
 
@@ -226,5 +236,4 @@
 ~~~
 
 Initial Release!
-
 
