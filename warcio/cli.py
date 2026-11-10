@@ -1,10 +1,12 @@
 from argparse import ArgumentParser, RawTextHelpFormatter
+import json
+import sys
 
 from warcio.indexer import Indexer
 from warcio.checker import Checker
 from warcio.extractor import Extractor
 from warcio.recompressor import Recompressor
-
+from warcio.integrity import verify_file, render_text
 
 try:
     from importlib.metadata import version
@@ -12,8 +14,6 @@ except ImportError:
     import pkg_resources
     def version(package):
         return pkg_resources.get_distribution(package).version
-import sys
-
 
 # ============================================================================
 def main(args=None):
@@ -58,6 +58,15 @@ def main(args=None):
     check.add_argument('-v', '--verbose', action='store_true')
     check.set_defaults(func=checker)
 
+    integrity = subparsers.add_parser(
+        'integrity',
+        help='Offline, streaming WARC integrity verification (framing, gzip '
+             'CRC, HTTP coding and block/payload digests as separate layers)')
+    integrity.add_argument('inputs', nargs='+', help='input WARC or WARC.gz file(s)')
+    integrity.add_argument('--json', action='store_true',
+                           help='emit machine-readable JSON instead of text')
+    integrity.set_defaults(func=integrity_checker)
+
     cmd = parser.parse_args(args=args)
     cmd.func(cmd)
 
@@ -81,6 +90,24 @@ def checker(cmd):
 
 
 # ============================================================================
+def integrity_checker(cmd):
+    exit_value = 0
+    reports = [verify_file(path) for path in cmd.inputs]
+    if cmd.json:
+        payload = [report.as_dict() for report in reports]
+        sys.stdout.write(json.dumps(payload, indent=2) + '\n')
+    else:
+        for index, report in enumerate(reports):
+            if index:
+                sys.stdout.write('\n')
+            sys.stdout.write(render_text(report) + '\n')
+    for report in reports:
+        if report.status in ('fail', 'incomplete'):
+            exit_value = 1
+    sys.exit(exit_value)
+
+
+# ============================================================================
 def extractor(cmd):
     _extractor = Extractor(cmd.filename, cmd.offset)
     _extractor.extract(cmd.payload, cmd.headers)
@@ -95,4 +122,3 @@ def recompressor(cmd):
 # ============================================================================
 if __name__ == "__main__":  #pragma: no cover
     main()
-
