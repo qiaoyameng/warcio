@@ -1,3 +1,15 @@
+Unreleased
+~~~~~~~~~~
+
+- Add ``SegmentedArchiveIterator`` to reassemble WARC 1.1 segmented
+  records (first segment + ``continuation`` records) into single logical
+  records grouped by ``WARC-Segment-Origin-ID`` and
+  ``WARC-Segment-Number``, while ``ArchiveIterator`` continues to yield
+  the physical records.  Validates contiguous segment numbers and the
+  final segment's ``WARC-Segment-Total-Length``, spools segment bodies to
+  disk with configurable incomplete-group/byte limits, and only delivers a
+  record once complete.
+
 1.8.2
 ~~~~~
 
@@ -226,5 +238,4 @@
 ~~~
 
 Initial Release!
-
 

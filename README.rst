@@ -121,6 +121,57 @@ records) that contain HTML:
     print_records('https://archive.org/download/ExampleArcAndWarcFiles/IAH-20080430204825-00000-blackbook.arc.gz')
 
 
+WARC 1.1 Segmented (Continuation) Records
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+WARC 1.1 allows a single logical record to be split across several
+physical records: the first segment keeps the original record type and
+each following segment is written as a ``continuation`` record linked
+with ``WARC-Segment-Origin-ID`` and ordered by ``WARC-Segment-Number``.
+
+``ArchiveIterator`` keeps returning the physical records unchanged. To
+work with the reassembled, logical records instead, wrap the same stream
+in a ``SegmentedArchiveIterator``:
+
+.. code:: python
+
+    from warcio.segmentedarchiveiterator import SegmentedArchiveIterator
+
+    with open('path/to/file.warc', 'rb') as stream:
+        for record in SegmentedArchiveIterator(stream):
+            # a non-segmented record is passed straight through, while a
+            # segmented record is only yielded once all of its segments
+            # have been read and validated
+            print(record.rec_headers.get_header('WARC-Target-URI'))
+            print(record.content_stream().read())
+
+Segments are grouped by ``WARC-Segment-Origin-ID`` (falling back to the
+first segment's ``WARC-Record-ID``); segment numbers must start at 1 and
+be contiguous.  The final segment's ``WARC-Segment-Total-Length`` is
+checked against the reassembled block.  Duplicate, missing or backwards
+segment numbers, an unknown origin, or a total-length mismatch raise a
+``SegmentationError`` carrying the offending origin id and the physical
+segment number.  HTTP headers are taken only from the first segment, so
+continuation WARC headers never leak into the body.
+
+Multiple origins may be interleaved.  Segment bodies are spooled to a
+temporary directory and a logical record is only delivered once complete.
+The amount of buffered work can be bounded with
+``max_incomplete_groups`` and ``max_spool_bytes`` (a
+``SpoolLimitExceeded`` error stops iteration when either is exceeded), and
+all spooled files are removed when iteration finishes, fails or is closed
+early.  Origins that never receive a final segment remain available on
+the ``incomplete`` mapping instead of being emitted as records:
+
+.. code:: python
+
+    iterator = SegmentedArchiveIterator(
+        stream, max_incomplete_groups=100, max_spool_bytes=1024 * 1024 * 100)
+    for record in iterator:
+        ...
+    print(iterator.incomplete)  # {origin_id: segments_buffered}
+
+
 Writing WARC Records
 --------------------
 

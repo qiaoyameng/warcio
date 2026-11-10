@@ -1,3 +1,4 @@
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.archiveiterator import ArchiveIterator
+from warcio.segmentedarchiveiterator import SegmentedArchiveIterator
 from warcio.warcwriter import WARCWriter
