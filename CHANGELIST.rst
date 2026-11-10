@@ -1,3 +1,18 @@
+unreleased
+~~~~~~~~~~
+
+- Add ``warcio.rawedit.RawBlockEditor``, a raw-block-preserving editing entry
+  point: WARC headers can be replaced (with explicit replace-all vs.
+  per-occurrence semantics for duplicate headers) while the HTTP headers and
+  payload are copied as opaque bytes. ``Content-Length`` and
+  ``WARC-Block-Digest`` are always computed from the actual block by the
+  output process and can not be set directly. Supports non-seekable input,
+  a configurable in-memory buffering threshold, verifies an existing
+  ``WARC-Block-Digest`` when present (never claiming verification when it is
+  absent), and writes nothing on failure.
+- Add ``StatusAndHeaders.replace_all_headers()`` and
+  ``StatusAndHeaders.replace_header_at()`` for duplicate-aware header editing.
+
 1.8.2
 ~~~~~
 
@@ -226,5 +241,4 @@
 ~~~
 
 Initial Release!
-
 

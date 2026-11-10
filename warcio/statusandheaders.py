@@ -74,6 +74,60 @@ class StatusAndHeaders(object):
 
         return False
 
+    def replace_all_headers(self, name, values):
+        """
+        Replace every occurrence of header `name` (case-insensitive)
+        with new headers built from `values` (a list of values).
+
+        The new headers are inserted at the position of the first
+        existing occurrence, keeping all other headers (including
+        duplicates of other names) in their original order.
+        If the header is not present, the new headers are appended.
+        An empty `values` list removes all occurrences.
+        """
+        name_lower = name.lower()
+        new_headers = []
+        insert_at = None
+
+        for curr_name, curr_value in self.headers:
+            if curr_name.lower() == name_lower:
+                if insert_at is None:
+                    insert_at = len(new_headers)
+                continue
+
+            new_headers.append((curr_name, curr_value))
+
+        new_entries = [(name, value) for value in values]
+        if insert_at is None:
+            new_headers.extend(new_entries)
+        else:
+            new_headers[insert_at:insert_at] = new_entries
+
+        self.headers = new_headers
+
+    def replace_header_at(self, name, index, value):
+        """
+        Replace only the `index`-th (0-based) occurrence of header `name`
+        (case-insensitive), leaving any other duplicate headers and their
+        order untouched. The original header name casing is preserved.
+        Returns the old value, raises IndexError if there is no such
+        occurrence.
+        """
+        name_lower = name.lower()
+        occurrence = 0
+
+        for curr_index in range(len(self.headers)):
+            curr_name, curr_value = self.headers[curr_index]
+            if curr_name.lower() == name_lower:
+                if occurrence == index:
+                    self.headers[curr_index] = (curr_name, value)
+                    return curr_value
+
+                occurrence += 1
+
+        msg = 'No occurrence {0} of header {1}'.format(index, name)
+        raise IndexError(msg)
+
     def get_statuscode(self):
         """
         Return the statuscode part of the status response line
